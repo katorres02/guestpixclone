@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Camila &amp; Carlos — Share your photos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+  <script>
+    /* ═══════════════════════════════════════════════════════════════
+       CONFIGURATION — paste your deployed Apps Script URL here
+       (Deploy → Web app → URL ending in /exec)
+       ═══════════════════════════════════════════════════════════════ */
+    var SCRIPT_URL = 'PASTE_YOUR_APPS_SCRIPT_URL/exec';
+  </script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['"Cormorant Garamond"', 'serif'],
+            sans: ['Jost', 'sans-serif'],
+          },
+          colors: {
+            ivory: '#FBF9F4',
+            sand: '#F1EBE1',
+            gold: '#A48A5F',
+            golddark: '#8A7048',
+            ink: '#3F3A34',
+            inksoft: '#8C857B',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    html { background: #FBF9F4; }
+    body { -webkit-tap-highlight-color: transparent; }
+    .masonry { column-gap: 0.75rem; }
+    .masonry > * { break-inside: avoid; margin-bottom: 0.75rem; }
+    .fade-in { animation: fadeIn .5s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .shimmer {
+      background: linear-gradient(100deg, #F1EBE1 40%, #F8F4EC 50%, #F1EBE1 60%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite linear;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+    dialog::backdrop { background: rgba(63, 58, 52, .55); backdrop-filter: blur(4px); }
+  </style>
+</head>
+<body class="font-sans text-ink bg-ivory min-h-screen antialiased">
+
+  <!-- ══════════ HERO ══════════ -->
+  <header class="relative text-center px-6 pt-14 pb-10 sm:pt-20 sm:pb-14">
+    <p class="tracking-[0.35em] text-[11px] sm:text-xs uppercase text-gold mb-4">Our wedding</p>
+    <h1 class="font-serif text-5xl sm:text-7xl font-medium leading-tight">
+      Camila <span class="italic font-normal text-gold">&amp;</span> Carlos
+    </h1>
+    <div class="flex items-center justify-center gap-4 mt-6">
+      <span class="h-px w-12 bg-gold/50"></span>
+      <svg class="w-4 h-4 text-gold" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.9-9.7-9.2C.7 8.6 2.7 5 6.1 5c2 0 3.4 1.1 4.2 2.4h3.4C14.5 6.1 15.9 5 17.9 5c3.4 0 5.4 3.6 3.8 6.8C19.5 16.1 12 21 12 21z" transform="scale(0.9) translate(1.3,1.3)"/></svg>
+      <span class="h-px w-12 bg-gold/50"></span>
+    </div>
+    <p class="mt-6 max-w-md mx-auto text-inksoft text-sm sm:text-base leading-relaxed">
+      Help us capture every moment: share the photos and videos
+      you take during the celebration. Thank you for celebrating with us!
+    </p>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-3 sm:px-6 pb-24">
+
+    <!-- ══════════ UPLOAD AREA ══════════ -->
+    <section id="dropzone"
+      class="mx-1 sm:mx-0 rounded-2xl border-2 border-dashed border-gold/40 bg-white/60 px-6 py-10 text-center transition-colors cursor-pointer hover:border-gold hover:bg-white">
+      <input id="fileInput" type="file" accept="image/*,video/*" multiple class="hidden">
+      <svg class="w-10 h-10 mx-auto text-gold mb-3" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+      </svg>
+      <p class="font-serif text-2xl sm:text-3xl">Share your memories</p>
+      <p class="text-inksoft text-sm mt-1">Tap here or drop your photos and videos</p>
+      <button type="button"
+        class="mt-5 inline-flex items-center gap-2 rounded-full bg-gold text-white text-sm tracking-wide px-7 py-3 shadow-sm hover:bg-golddark transition-colors pointer-events-none">
+        Choose files
+      </button>
+    </section>
+
+    <!-- upload progress -->
+    <section id="uploadList" class="mt-4 space-y-2 mx-1 sm:mx-0"></section>
+
+    <!-- ══════════ FILTERS ══════════ -->
+    <nav class="flex items-center justify-between mt-12 mb-5 px-1">
+      <div id="filters" class="flex gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
+        <button data-filter="all"   class="filter-btn rounded-full px-4 py-1.5 text-sm whitespace-nowrap transition-colors">All</button>
+        <button data-filter="photo" class="filter-btn rounded-full px-4 py-1.5 text-sm whitespace-nowrap transition-colors">Photos</button>
+        <button data-filter="video" class="filter-btn rounded-full px-4 py-1.5 text-sm whitespace-nowrap transition-colors">Videos</button>
+        <button data-filter="mine"  class="filter-btn rounded-full px-4 py-1.5 text-sm whitespace-nowrap transition-colors">My memories</button>
+      </div>
+      <button id="refreshBtn" title="Refresh" class="shrink-0 ml-3 p-2 rounded-full text-gold hover:bg-sand transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992V4.356m-.002 4.99A9 9 0 105.64 18.36l1.7-1.7"/>
+        </svg>
+      </button>
+    </nav>
+
+    <!-- ══════════ GALLERY ══════════ -->
+    <div id="gallery" class="masonry columns-2 sm:columns-3 lg:columns-4"></div>
+    <div id="emptyState" class="hidden text-center py-16">
+      <p class="font-serif text-3xl text-inksoft">No memories yet</p>
+      <p class="text-sm text-inksoft mt-2">Be the first to share a photo ✨</p>
+    </div>
+  </main>
+
+  <footer class="text-center pb-10 text-inksoft text-xs tracking-widest uppercase">
+    With love · Camila &amp; Carlos
+  </footer>
+
+  <!-- ══════════ MODAL: NAME ══════════ -->
+  <dialog id="nameModal" class="rounded-2xl p-0 w-[90vw] max-w-sm bg-ivory shadow-2xl">
+    <form method="dialog" class="p-7 text-center">
+      <p class="tracking-[0.3em] text-[10px] uppercase text-gold mb-2">Welcome</p>
+      <h2 class="font-serif text-3xl mb-1">What's your name?</h2>
+      <p class="text-inksoft text-sm mb-5">So we know who to thank for every memory.</p>
+      <input id="nameInput" type="text" maxlength="40" placeholder="Your name"
+        class="w-full rounded-full border border-gold/40 bg-white px-5 py-3 text-center outline-none focus:border-gold" required>
+      <button id="nameSave"
+        class="mt-4 w-full rounded-full bg-gold text-white py-3 tracking-wide hover:bg-golddark transition-colors">
+        Continue
+      </button>
+    </form>
+  </dialog>
+
+  <!-- ══════════ MODAL: CONFIRM DELETE ══════════ -->
+  <dialog id="confirmModal" class="rounded-2xl p-0 w-[90vw] max-w-sm bg-ivory shadow-2xl">
+    <div class="p-7 text-center">
+      <h2 class="font-serif text-2xl mb-2">Delete this memory?</h2>
+      <p class="text-inksoft text-sm mb-6">It will be removed from the wedding gallery.</p>
+      <div class="flex gap-3">
+        <button id="confirmNo"  class="flex-1 rounded-full border border-gold/40 py-3 text-sm hover:bg-sand transition-colors">Cancel</button>
+        <button id="confirmYes" class="flex-1 rounded-full bg-ink text-white py-3 text-sm hover:bg-black transition-colors">Delete</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ══════════ LIGHTBOX ══════════ -->
+  <div id="lightbox" class="hidden fixed inset-0 z-50 bg-ink/95 backdrop-blur-sm flex flex-col">
+    <div class="flex items-center justify-between px-4 py-3 text-white/90">
+      <p id="lbCaption" class="text-sm truncate pr-4"></p>
+      <button id="lbClose" class="p-2 rounded-full hover:bg-white/10">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="lbContent" class="flex-1 flex items-center justify-center px-2 pb-4 min-h-0"></div>
+    <button id="lbPrev" class="absolute left-1 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+    </button>
+    <button id="lbNext" class="absolute right-1 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+    </button>
+  </div>
+
+  <!-- ══════════ TOAST ══════════ -->
+  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-ink text-white text-sm px-5 py-3 rounded-full shadow-lg max-w-[90vw] text-center"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- state ---------- */
+  var deviceId = localStorage.getItem('cc_device');
+  if (!deviceId) {
+    deviceId = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
+    localStorage.setItem('cc_device', deviceId);
+  }
+  var guestName = localStorage.getItem('cc_name') || '';
+  var allFiles = [];
+  var currentFilter = 'all';
+  var lbItems = [];
+  var lbIndex = 0;
+
+  /* ---------- helpers ---------- */
+  function $(id) { return document.getElementById(id); }
+
+  /**
+   * Calls the Apps Script backend via fetch.
+   * Content-Type text/plain = "simple request": avoids the CORS preflight
+   * that Apps Script does not support.
+   */
+  function api(action, payload) {
+    return fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('Connection error (' + r.status + ')');
+        return r.json();
+      })
+      .then(function (j) {
+        if (j.error) throw new Error(j.error);
+        return j.data;
+      });
+  }
+
+  function toast(msg, ms) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.remove('hidden');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function () { t.classList.add('hidden'); }, ms || 3200);
+  }
+
+  function isVideo(f) { return (f.mimeType || '').indexOf('video/') === 0; }
+  function thumbUrl(id, w) { return 'https://drive.google.com/thumbnail?id=' + id + '&sz=w' + (w || 600); }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* ---------- guest name ---------- */
+  function askName() {
+    return new Promise(function (resolve) {
+      var modal = $('nameModal');
+      $('nameInput').value = guestName;
+      modal.showModal();
+      modal.addEventListener('close', function onClose() {
+        modal.removeEventListener('close', onClose);
+        var v = $('nameInput').value.trim();
+        if (v) { guestName = v; localStorage.setItem('cc_name', v); }
+        resolve(guestName);
+      });
+    });
+  }
+
+  /* ---------- gallery ---------- */
+  function skeleton() {
+    var g = $('gallery');
+    g.innerHTML = '';
+    for (var i = 0; i < 8; i++) {
+      var d = document.createElement('div');
+      d.className = 'shimmer rounded-xl';
+      d.style.height = (140 + (i % 4) * 45) + 'px';
+      g.appendChild(d);
+    }
+  }
+
+  function visibleFiles() {
+    return allFiles.filter(function (f) {
+      if (currentFilter === 'photo') return !isVideo(f);
+      if (currentFilter === 'video') return isVideo(f);
+      if (currentFilter === 'mine')  return f.device === deviceId;
+      return true;
+    });
+  }
+
+  function render() {
+    var files = visibleFiles();
+    var g = $('gallery');
+    g.innerHTML = '';
+    $('emptyState').classList.toggle('hidden', files.length > 0);
+
+    files.forEach(function (f, i) {
+      var mine = f.device === deviceId;
+      var card = document.createElement('div');
+      card.className = 'fade-in relative group rounded-xl overflow-hidden bg-sand cursor-pointer shadow-sm';
+      card.innerHTML =
+        '<img loading="lazy" src="' + thumbUrl(f.id, 600) + '" alt="" class="w-full block"' +
+        ' onerror="this.onerror=null;this.src=\'\';this.style.minHeight=\'160px\';">' +
+        (isVideo(f)
+          ? '<span class="absolute inset-0 flex items-center justify-center pointer-events-none">' +
+            '<span class="w-12 h-12 rounded-full bg-ink/60 backdrop-blur flex items-center justify-center">' +
+            '<svg class="w-5 h-5 text-white ml-0.5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>' +
+            '</span></span>'
+          : '') +
+        '<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/70 to-transparent px-3 pt-8 pb-2 pointer-events-none">' +
+          '<p class="text-white/95 text-xs truncate">' + escapeHtml(f.uploader || 'Guest') + '</p>' +
+        '</div>' +
+        (mine
+          ? '<button data-del="' + f.id + '" title="Delete" ' +
+            'class="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 text-ink shadow flex items-center justify-center hover:bg-white">' +
+            '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">' +
+            '<path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.35 9m-4.78 0L9.26 9m9.97-3.21c.34.05.68.11 1.02.17m-1.02-.17L18.16 19.7A2.25 2.25 0 0115.92 21.75H8.08a2.25 2.25 0 01-2.24-2.05L4.77 5.79m14.46 0a48.1 48.1 0 00-3.48-.4m-12 .56c.34-.06.68-.12 1.02-.17m0 0a48.11 48.11 0 013.48-.4m7.5 0v-.92c0-1.18-.91-2.16-2.09-2.2a51.96 51.96 0 00-3.32 0c-1.18.04-2.09 1.02-2.09 2.2v.92m7.5 0a48.67 48.67 0 00-7.5 0"/></svg>' +
+            '</button>'
+          : '');
+      card.addEventListener('click', function (ev) {
+        var del = ev.target.closest('[data-del]');
+        if (del) { ev.stopPropagation(); confirmDelete(del.getAttribute('data-del')); return; }
+        openLightbox(files, i);
+      });
+      g.appendChild(card);
+    });
+  }
+
+  function loadGallery(silent) {
+    if (!silent) skeleton();
+    return api('list').then(function (files) {
+      allFiles = files || [];
+      render();
+    }).catch(function (e) {
+      $('gallery').innerHTML = '';
+      toast('Could not load the gallery: ' + e.message);
+    });
+  }
+
+  /* ---------- filters ---------- */
+  function paintFilters() {
+    document.querySelectorAll('.filter-btn').forEach(function (b) {
+      var on = b.getAttribute('data-filter') === currentFilter;
+      b.className = 'filter-btn rounded-full px-4 py-1.5 text-sm whitespace-nowrap transition-colors ' +
+        (on ? 'bg-ink text-white' : 'bg-sand text-ink hover:bg-gold/20');
+    });
+  }
+  document.querySelectorAll('.filter-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      currentFilter = b.getAttribute('data-filter');
+      paintFilters();
+      render();
+    });
+  });
+
+  /* ---------- lightbox ---------- */
+  function openLightbox(items, index) {
+    lbItems = items; lbIndex = index;
+    $('lightbox').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    showLbItem();
+  }
+  function showLbItem() {
+    var f = lbItems[lbIndex];
+    if (!f) return;
+    $('lbCaption').textContent = (f.uploader ? 'By ' + f.uploader : 'Memory') +
+      ' · ' + new Date(f.created).toLocaleDateString('en-US', { day: 'numeric', month: 'long' });
+    var c = $('lbContent');
+    if (isVideo(f)) {
+      c.innerHTML = '<iframe src="https://drive.google.com/file/d/' + f.id + '/preview" ' +
+        'class="w-full h-full max-w-4xl rounded-lg" allow="autoplay; fullscreen" allowfullscreen></iframe>';
+    } else {
+      c.innerHTML = '<img src="' + thumbUrl(f.id, 1600) + '" alt="" ' +
+        'class="max-w-full max-h-full object-contain rounded-lg shadow-2xl">';
+    }
+    $('lbPrev').style.visibility = lbIndex > 0 ? 'visible' : 'hidden';
+    $('lbNext').style.visibility = lbIndex < lbItems.length - 1 ? 'visible' : 'hidden';
+  }
+  function closeLightbox() {
+    $('lightbox').classList.add('hidden');
+    $('lbContent').innerHTML = '';
+    document.body.style.overflow = '';
+  }
+  $('lbClose').addEventListener('click', closeLightbox);
+  $('lbPrev').addEventListener('click', function () { if (lbIndex > 0) { lbIndex--; showLbItem(); } });
+  $('lbNext').addEventListener('click', function () { if (lbIndex < lbItems.length - 1) { lbIndex++; showLbItem(); } });
+  $('lightbox').addEventListener('click', function (e) { if (e.target === $('lbContent')) closeLightbox(); });
+  document.addEventListener('keydown', function (e) {
+    if ($('lightbox').classList.contains('hidden')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') $('lbPrev').click();
+    if (e.key === 'ArrowRight') $('lbNext').click();
+  });
+
+  /* ---------- delete ---------- */
+  function confirmDelete(fileId) {
+    var modal = $('confirmModal');
+    modal.showModal();
+    $('confirmNo').onclick = function () { modal.close(); };
+    $('confirmYes').onclick = function () {
+      modal.close();
+      api('delete', { id: fileId, device: deviceId }).then(function () {
+        allFiles = allFiles.filter(function (f) { return f.id !== fileId; });
+        render();
+        toast('Memory deleted');
+      }).catch(function (e) { toast(e.message); });
+    };
+  }
+
+  /* ---------- upload ---------- */
+  var dropzone = $('dropzone');
+  var fileInput = $('fileInput');
+
+  dropzone.addEventListener('click', function () { fileInput.click(); });
+  fileInput.addEventListener('change', function () {
+    handleFiles(Array.prototype.slice.call(fileInput.files));
+    fileInput.value = '';
+  });
+  ['dragover', 'dragenter'].forEach(function (ev) {
+    dropzone.addEventListener(ev, function (e) { e.preventDefault(); dropzone.classList.add('border-gold', 'bg-white'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    dropzone.addEventListener(ev, function (e) { e.preventDefault(); dropzone.classList.remove('border-gold', 'bg-white'); });
+  });
+  dropzone.addEventListener('drop', function (e) {
+    handleFiles(Array.prototype.slice.call(e.dataTransfer.files).filter(function (f) {
+      return /^(image|video)\//.test(f.type);
+    }));
+  });
+
+  function handleFiles(files) {
+    if (!files.length) return;
+    var start = guestName ? Promise.resolve() : askName();
+    start.then(function () {
+      files.reduce(function (chain, file) {
+        return chain.then(function () { return uploadOne(file); });
+      }, Promise.resolve()).then(function () {
+        return loadGallery(true);
+      });
+    });
+  }
+
+  function uploadRow(file) {
+    var row = document.createElement('div');
+    row.className = 'fade-in flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm';
+    row.innerHTML =
+      '<svg class="w-5 h-5 text-gold shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">' +
+      (/^video\//.test(file.type)
+        ? '<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z"/>'
+        : '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.16-5.16a2.25 2.25 0 013.18 0l5.16 5.16m-1.5-1.5l1.41-1.41a2.25 2.25 0 013.18 0l2.91 2.91M3.75 19.5h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z"/>') +
+      '</svg>' +
+      '<div class="flex-1 min-w-0">' +
+        '<p class="text-sm truncate">' + escapeHtml(file.name) + '</p>' +
+        '<div class="h-1.5 bg-sand rounded-full mt-1.5 overflow-hidden">' +
+          '<div class="bar h-full bg-gold rounded-full transition-all" style="width:0%"></div>' +
+        '</div>' +
+      '</div>' +
+      '<span class="pct text-xs text-inksoft w-10 text-right shrink-0">0%</span>';
+    $('uploadList').appendChild(row);
+    return row;
+  }
+
+  function uploadOne(file) {
+    var row = uploadRow(file);
+    var bar = row.querySelector('.bar');
+    var pct = row.querySelector('.pct');
+
+    return api('initUpload', {
+      name: file.name,
+      mimeType: file.type,
+      uploader: guestName,
+      device: deviceId,
+      origin: location.origin
+    })
+      .then(function (sessionUrl) {
+        if (!sessionUrl) throw new Error('Could not start the upload session');
+        return new Promise(function (resolve, reject) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('PUT', sessionUrl, true);
+          xhr.upload.onprogress = function (e) {
+            if (e.lengthComputable) {
+              var p = Math.round((e.loaded / e.total) * 100);
+              bar.style.width = p + '%';
+              pct.textContent = p + '%';
+            }
+          };
+          xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try { resolve(JSON.parse(xhr.responseText)); }
+              catch (e) { resolve({}); }
+            } else reject(new Error('Upload failed (' + xhr.status + ')'));
+          };
+          xhr.onerror = function () { reject(new Error('Connection failed during upload')); };
+          xhr.send(file);
+        });
+      })
+      .then(function (uploaded) {
+        if (uploaded && uploaded.id) return api('finalize', { id: uploaded.id });
+      })
+      .then(function () {
+        pct.textContent = '✓';
+        bar.style.width = '100%';
+        setTimeout(function () { row.remove(); }, 2500);
+      })
+      .catch(function (e) {
+        pct.textContent = '✕';
+        row.classList.add('opacity-70');
+        toast('"' + file.name + '": ' + e.message, 5000);
+        setTimeout(function () { row.remove(); }, 6000);
+      });
+  }
+
+  /* ---------- init ---------- */
+  $('refreshBtn').addEventListener('click', function () { loadGallery(); });
+  paintFilters();
+  if (SCRIPT_URL.indexOf('PASTE_YOUR') === 0) {
+    $('emptyState').classList.remove('hidden');
+    toast('Set SCRIPT_URL in index.html to your Apps Script /exec URL', 8000);
+  } else {
+    skeleton();
+    loadGallery();
+  }
+})();
+</script>
+</body>
+</html>
